@@ -21,13 +21,16 @@ package org.nuxeo.micro.vertx.sse;
 
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
-public class TimeHandler implements Handler<RoutingContext> {
+public class StreamHandler implements Handler<RoutingContext> {
+
     @Override
     public void handle(RoutingContext context) {
-        System.out.println("Start TimeHandler");
+        System.out.println("Start StreamHandler");
+        HttpServerRequest request = context.request();
         HttpServerResponse response = context.response();
 
         response.setChunked(true);
@@ -36,12 +39,18 @@ public class TimeHandler implements Handler<RoutingContext> {
         response.headers().add("Cache-Control", "no-cache");
         response.headers().add("Access-Control-Allow-Origin", "*");
 
-        MessageConsumer<Object> consumer = context.vertx().eventBus().consumer("timer", message -> {
-            System.out.println("I have received a message: " + message.body());
+        String stream = request.getParam("stream");
+        if (stream == null) {
+            context.fail(404);
+        }
+
+        MessageConsumer<Object> consumer = context.vertx().eventBus().consumer(stream, message -> {
+            System.out.println("I have received a message on " + stream + ": " + message.body());
             response.write(message.body().toString() + "\n\n");
         });
+
         response.closeHandler(aVoid -> {
-            System.out.println("End TimeHandler");
+            System.out.println("End StreamHandler");
             consumer.unregister();
         });
     }

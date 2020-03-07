@@ -17,9 +17,14 @@ public class MainVerticle extends AbstractVerticle {
 
     private Router createRouter() {
         Router router = Router.router(vertx);
-        router.route("/timer/").handler(new TimeHandler()).failureHandler(it -> it.response().end("timer error"));
+        router.route("/subscribe/timer")
+              .handler(new TimeHandler())
+              .failureHandler(it -> it.response().end("timer error"));
+        router.route("/subscribe/:stream")
+              .handler(new StreamHandler())
+              .failureHandler(it -> it.response().end("stream error"));
         router.route().handler(req -> {
-            req.response().putHeader("content-type", "text/plain").end("Hello from Vert.x!");
+            req.response().putHeader("content-type", "text/plain").end("Hello!");
         });
         return router;
     }
@@ -37,7 +42,7 @@ public class MainVerticle extends AbstractVerticle {
 
     private void setTimer() {
         vertx.setPeriodic(1000, id -> {
-            System.out.println("time");
+            System.out.println("tic");
             vertx.eventBus().publish("timer", LocalDateTime.now().toString());
         });
     }
