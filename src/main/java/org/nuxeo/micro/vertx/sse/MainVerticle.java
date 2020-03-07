@@ -1,9 +1,9 @@
 package org.nuxeo.micro.vertx.sse;
 
-import java.time.LocalDateTime;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.Verticle;
 import io.vertx.ext.web.Router;
 
 public class MainVerticle extends AbstractVerticle {
@@ -12,16 +12,14 @@ public class MainVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) {
         Router router = createRouter();
         createWebServer(startPromise, router);
-        setTimer();
+        Verticle worker = new WorkVerticle();
+        vertx.deployVerticle(worker);
     }
 
     private Router createRouter() {
         Router router = Router.router(vertx);
-        router.route("/subscribe/timer")
-              .handler(new TimeHandler())
-              .failureHandler(it -> it.response().end("timer error"));
         router.route("/subscribe/:stream")
-              .handler(new StreamHandler())
+              .handler(new SubscribeHandler())
               .failureHandler(it -> it.response().end("stream error"));
         router.route().handler(req -> {
             req.response().putHeader("content-type", "text/plain").end("Hello!");
@@ -39,12 +37,4 @@ public class MainVerticle extends AbstractVerticle {
             }
         });
     }
-
-    private void setTimer() {
-        vertx.setPeriodic(1000, id -> {
-            System.out.println("tic");
-            vertx.eventBus().publish("timer", LocalDateTime.now().toString());
-        });
-    }
-
 }
