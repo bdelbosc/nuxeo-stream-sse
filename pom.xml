@@ -22,7 +22,7 @@
     <vertx.version>4.0.0-milestone4</vertx.version>
     <junit-jupiter.version>5.4.0</junit-jupiter.version>
 
-    <main.verticle>org.nuxeo.micro.vertx.nuxeo_stream_sse.MainVerticle</main.verticle>
+    <main.verticle>org.nuxeo.micro.vertx.sse.MainVerticle</main.verticle>
   </properties>
 
   <dependencyManagement>
@@ -38,10 +38,6 @@
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-rx-java2</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
