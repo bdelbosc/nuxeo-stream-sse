@@ -8,19 +8,19 @@ This is a proof of concept **NOT FOR PRODUCTION**.
 1. Propagates Nuxeo Stream records to the client side.
 2. Support a massive number of clients per front node and scale horizontally.
 
-This can be used to provide continuous feedback on long asynchronous processing like Nuxeo Bulk Service.
+This can be used to provide continuous feedback on long asynchronous processing,
+for instance the progression of a Nuxeo Bulk command.
 
 
 ## Design
 
-This is a one way communication server -> client, Server Sent Event is now supported by all browser and is designed exactly for this.
+This is a one way communication server to client, Server Sent Event is supported by all browsers and is designed exactly for this.
 
-The second goal requires async NIO and a multi reactor pattern in order to handle many connections per threads.
-Vert.x is a solid solution that and should support thousands of connection per node with very few resources.
+To scale on the number of client it requires async NIO and a multi reactor pattern in order to handle a high number of concurrent requests.
+Vert.x is a solid solution that should support thousands of connections per node with very few resources.
 
 
-Clients subscribe to streams using a REST API.
-They receive the records from the stream in real time.
+Clients subscribe to streams using a REST API and receive records from the stream in real time:
 
 ```bash
 # subscribe to the stream "command" which is the Bulk Service Command Stream
@@ -38,6 +38,16 @@ records are forwarded to the internal pub-sub Vert.X event bus.
 
 Client subscription is done by Handlers (could be thousands) receive records from the event bus
 and propagates downstream using SSE. 
+
+## Rejected alternative 
+
+- Use helidon and rxJava with an observer pattern: much more complex than vert.x event-bus
+- Use Akka and spend months
+
+## TODO
+
+- gatling test to check limits
+- create a simple client application to introspect Nuxeo stream activity
 
 # Help
 
