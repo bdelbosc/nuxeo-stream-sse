@@ -1,9 +1,13 @@
 package org.nuxeo.micro.vertx.sse;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Promise;
-import io.vertx.core.Verticle;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 
 public class MainVerticle extends AbstractVerticle {
@@ -12,8 +16,26 @@ public class MainVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) {
         Router router = createRouter();
         createWebServer(startPromise, router);
-        Verticle worker = new WorkVerticle();
-        vertx.deployVerticle(worker);
+        initWorkPool();
+    }
+
+    private void initWorkPool() {
+        DeploymentOptions options = new DeploymentOptions().setWorker(true)
+                                                           .setInstances(1)
+                                                           .setWorkerPoolName("consumer-pool")
+                                                           .setWorkerPoolSize(1)
+                                                           .setConfig(getConfig());
+        vertx.deployVerticle(WorkVerticle::new, options);
+    }
+
+    private JsonObject getConfig() {
+        return new JsonObject().put("bootstrap.servers", "localhost:9092")
+                               .put("consumer.group", "" + "vertx")
+                               .put("streams", getStreams());
+    }
+
+    private List<String> getStreams() {
+        return new ArrayList<>(List.of("command", "status", "done"));
     }
 
     private Router createRouter() {
