@@ -50,6 +50,7 @@ public class WorkVerticle extends AbstractVerticle implements RebalanceListener 
 
     private AvroDecoder decoder;
 
+
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         logManager = new KafkaLogManager(config().getString("stream.prefix"), getProducerProperties(),
@@ -74,6 +75,7 @@ public class WorkVerticle extends AbstractVerticle implements RebalanceListener 
         }
 
     }
+
 
     private void initAvro() {
         decoder = new AvroDecoder();
@@ -114,10 +116,10 @@ public class WorkVerticle extends AbstractVerticle implements RebalanceListener 
     }
 
     private void processRecord(LogRecord<Record> record) {
-        String channel = record.offset().partition().name();
-        System.out.println("Got record on channel:" + channel);
-        String message = decoder.renderAvroMessage(record.message());
-        vertx.eventBus().publish(channel, message);
+        String stream = record.offset().partition().name();
+        System.out.println("New record on stream: " + stream);
+        String message = decoder.decode(record.message());
+        vertx.eventBus().publish(stream, message);
     }
 
 

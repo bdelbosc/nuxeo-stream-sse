@@ -19,6 +19,11 @@
 
 package org.nuxeo.micro.vertx.sse;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpServerRequest;
@@ -29,25 +34,33 @@ public class SubscribeHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        System.out.println("Start Handler");
         HttpServerRequest request = context.request();
-        String stream = request.getParam("stream");
-        if (stream == null) {
+        List<String> streams = getStreams(request);
+        if (streams == null || streams.isEmpty()) {
             context.fail(404);
+            return;
         }
+        System.out.println("Start Handler for streams: " + streams);
 
         HttpServerResponse response = context.response();
         addSseHeaders(response);
 
-        MessageConsumer<Object> consumer = context.vertx().eventBus().consumer(stream, message -> {
-            System.out.println("I have received a message on " + stream + ": " + message.body());
-            response.write(message.body().toString() + "\n\n");
-        });
+        List<MessageConsumer<Object>> consumers = new ArrayList<>(streams.size());
+        streams.forEach(stream -> consumers.add(context.vertx().eventBus().consumer(stream, message -> {
+            System.out.println("Forward message on " + stream + ": " + message.body());
+            response.write("stream: " + stream  + "\n");
+            response.write("message: " + message.body() + "\n\n");
+        })));
 
         response.closeHandler(aVoid -> {
-            System.out.println("Stop Handler");
-            consumer.unregister();
+            System.out.println("Stop Handler on " + streams);
+            consumers.forEach(MessageConsumer::unregister);
         });
+    }
+
+    private List<String> getStreams(HttpServerRequest request) {
+        String streams = request.getParam("streams");
+        return Arrays.stream(streams.split("\\+")).collect(Collectors.toList());
     }
 
     private void addSseHeaders(HttpServerResponse response) {

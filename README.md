@@ -41,12 +41,31 @@ Vert.x is a solid solution that should support thousands of connections per node
 Clients subscribe to streams using a REST API and receive records from the stream in real time:
 
 ```bash
-# subscribe to the stream "command" which is the Bulk Service Command Stream
-curl -XGET http://localhost:8888/subscribe/command
+# subscribe to multiple streams from the Bulk Service, timer is a special stream to get a heart beat
+curl -XGET http://localhost:8888/subscribe/command+status+done+timer
+stream: timer
+message: {"now": "2020-03-09T15:37:36.809280Z"}
 
-Record{watermark=207576477653008384, wmDate=2020-03-08 16:54:03.422, flags=[DEFAULT], key='380c06ff-5d59-4899-98dc-383355e4bb96', data.length=314, data="....5.....H380c06ff-5d59-4899-98dc-383355e4bb96.csvExport..SELECT * FROM Document WHERE ecm:parentId = '2da04904-9675-475e-a2c0"}
+stream: command
+message: {"id": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": "csvExport", "query": "SELECT * FROM Document WHERE ecm:parentId = 'b9ac4cbc-2be0-47e4-9d5f-bd515e6d3050' AND ecm:isTrashed = 0 AND (ecm:isVersion = 0 AND ecm:mixinType != 'HiddenInNavigation')", "username": "Administrator", "repository": "default", "bucketSize": 100, "batchSize": 50, "scroller": "elastic", "params": "{\"schemas\":[\"dublincore\",\"common\",\"uid\",\"file\"]}"}
 
-Record{watermark=207576481285931008, wmDate=2020-03-08 16:54:31.139, flags=[DEFAULT], key='f12642c1-415e-44c4-ad5f-260a99419ffd', data.length=314, data="....5.....Hf12642c1-415e-44c4-ad5f-260a99419ffd.csvExport..SELECT * FROM Document WHERE ecm:parentId = '2da04904-9675-475e-a2c0"}
+stream: status
+message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": null, "state": "SCROLLING_RUNNING", "submitTime": null, "scrollStartTime": 1583768260567, "scrollEndTime": null, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": null, "processingDurationMillis": null, "result": null}
+
+stream: status
+message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": null, "state": "RUNNING", "submitTime": null, "scrollStartTime": null, "scrollEndTime": 1583768260634, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": 999, "processingDurationMillis": null, "result": null}
+
+stream: done
+message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": "csvExport", "username": "Administrator", "delta": false, "errorCount": 0, "errorMessage": null, "processed": 999, "state": "COMPLETED", "submitTime": 1583768260546, "scrollStartTime": 1583768260567, "scrollEndTime": 1583768260634, "processingStartTime": null, "processingEndTime": null, "completedTime": 1583768261517, "total": 999, "processingDurationMillis": null, "result": "{\"url\":\"nxbigblob/e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d\"}"}
+
+stream: status
+message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": 999, "state": null, "submitTime": null, "scrollStartTime": null, "scrollEndTime": null, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": null, "processingDurationMillis": null, "result": "{\"url\":\"nxbigblob/e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d\"}"}
+
+stream: timer
+message: {"now": "2020-03-09T15:37:41.805258Z"}
+
+stream: timer
+message: {"now": "2020-03-09T15:37:46.807009Z"}
 
 ...
 ```
@@ -60,12 +79,11 @@ and propagates downstream using SSE.
 
 ## TODO
 
-- decode avro message and propagate JSON body to client (Bulk Status, Bulk Command)
 - create a "lag" stream that reports lag and latency on Nuxeo Stream consumers
+- configure and use log4j
 - create a simple client application to introspect Nuxeo Stream activity
-- use a fixed pool of consumer with a shared LogManager
 - gatling test to check limits
-- add a heart beat to make sure connection is active without requiring TCP Keepalive configuration
+- use a fixed pool of consumer with a shared LogManager
 - check required AWS ALB configuration
 - handle auth
 

@@ -32,6 +32,9 @@ import org.apache.avro.message.SchemaStore;
 import org.apache.commons.io.IOUtils;
 import org.nuxeo.lib.stream.computation.Record;
 
+/**
+ * Decodes Avro message coming from Nuxeo, using a schema store.
+ */
 public class AvroDecoder {
     public static final byte[] AVRO_MESSAGE_V1_HEADER = new byte[] { (byte) 0xC3, (byte) 0x01 };
 
@@ -41,7 +44,7 @@ public class AvroDecoder {
         schemaStore = new SchemaStore.Cache();
     }
 
-    protected String renderAvroMessage(Record record) {
+    public String decode(Record record) {
         if (schemaStore == null || !isAvroMessage(record.getData())) {
             throw new IllegalArgumentException("Not avro encoded");
         }
@@ -61,7 +64,7 @@ public class AvroDecoder {
         }
     }
 
-    protected long getFingerPrint(byte[] data) {
+    private long getFingerPrint(byte[] data) {
         byte[] fingerPrintBytes = Arrays.copyOfRange(data, 2, 10);
         return ByteBuffer.wrap(fingerPrintBytes).order(ByteOrder.LITTLE_ENDIAN).getLong();
     }

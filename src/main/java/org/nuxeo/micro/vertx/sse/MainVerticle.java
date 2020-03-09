@@ -18,6 +18,7 @@
  */
 package org.nuxeo.micro.vertx.sse;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,17 +29,24 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 
 public class MainVerticle extends AbstractVerticle {
+    private long heardBeatId;
 
     @Override
     public void start(Promise<Void> startPromise) {
         Router router = createRouter();
         createWebServer(startPromise, router);
         initWorkPool();
+        initHeartBeat();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        stopHeartBeat();
     }
 
     private Router createRouter() {
         Router router = Router.router(vertx);
-        router.route("/subscribe/:stream")
+        router.route("/subscribe/:streams")
               .handler(new SubscribeHandler())
               .failureHandler(it -> it.response().end("stream error"));
         router.route().handler(req -> req.response().putHeader("content-type", "text/plain").end("Hello!"));
@@ -82,4 +90,12 @@ public class MainVerticle extends AbstractVerticle {
         vertx.deployVerticle(WorkVerticle::new, options);
     }
 
+    private void initHeartBeat() {
+        heardBeatId = vertx.setPeriodic(5000,
+                (aVoid -> vertx.eventBus().publish("timer", "{\"now\": \"" + Instant.now().toString() + "\"}")));
+    }
+
+    private void stopHeartBeat() {
+        vertx.cancelTimer(heardBeatId);
+    }
 }
