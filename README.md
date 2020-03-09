@@ -3,22 +3,40 @@
 This is a proof of concept **NOT FOR PRODUCTION**.
 
 
+## About
+
+Nuxeo Stream is a server side stream processor that relies on Apache Kafka.
+Client can submits asynchronous processing command and request the state using a REST API,
+but it will be better to get continuous and realtime feedback instead
+of having to periodically pull the state.
+
 ## Goals
 
 1. Propagates Nuxeo Stream records to the client side.
 2. Support a massive number of clients per front node and scale horizontally.
 
-This can be used to provide continuous feedback on long asynchronous processing,
-for instance the progression of a Nuxeo Bulk command.
 
+## Design Decisions
 
-## Design
+We need a one way communication from server to client.
+Server Sent Event is supported by all browsers and is exactly designed for this.
 
-This is a one way communication server to client, Server Sent Event is supported by all browsers and is designed exactly for this.
 
 To scale on the number of client it requires async NIO and a multi reactor pattern in order to handle a high number of concurrent requests.
 Vert.x is a solid solution that should support thousands of connections per node with very few resources.
 
+
+### Rejected alternatives 
+
+- Use helidon and rxJava with an observer pattern:
+    - pros: we could run Nuxeo Runtime/Core as micro service on the same instance  
+    - cons: much more complex than vert.x event-bus
+
+- Use Akka:
+    - pros:
+    - cons: actors is a complex pattern just for this specific need
+
+## Usage
 
 Clients subscribe to streams using a REST API and receive records from the stream in real time:
 
@@ -39,15 +57,16 @@ records are forwarded to the internal pub-sub Vert.X event bus.
 Client subscription is done by Handlers (could be thousands) receive records from the event bus
 and propagates downstream using SSE. 
 
-## Rejected alternative 
-
-- Use helidon and rxJava with an observer pattern: much more complex than vert.x event-bus
-- Use Akka and spend months
 
 ## TODO
 
+- use a fixed pool of consumer with a shared LogManager
+- decode avro message and propagate JSON body to client (Bulk Status, Bulk Command)
+- add a heart beat to make sure connection is active
+- subscribe on demand to any stream
+- create a simple client application to introspect Nuxeo Stream activity
 - gatling test to check limits
-- create a simple client application to introspect Nuxeo stream activity
+
 
 # Help
 
