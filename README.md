@@ -60,12 +60,14 @@ and propagates downstream using SSE.
 
 ## TODO
 
-- use a fixed pool of consumer with a shared LogManager
 - decode avro message and propagate JSON body to client (Bulk Status, Bulk Command)
-- add a heart beat to make sure connection is active
-- subscribe on demand to any stream
+- create a "lag" stream that reports lag and latency on Nuxeo Stream consumers
 - create a simple client application to introspect Nuxeo Stream activity
+- use a fixed pool of consumer with a shared LogManager
 - gatling test to check limits
+- add a heart beat to make sure connection is active without requiring TCP Keepalive configuration
+- check required AWS ALB configuration
+- handle auth
 
 
 # Help
