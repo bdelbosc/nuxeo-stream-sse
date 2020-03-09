@@ -31,18 +31,13 @@ public class SubscribeHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         System.out.println("Start Handler");
         HttpServerRequest request = context.request();
-        HttpServerResponse response = context.response();
-
-        response.setChunked(true);
-        response.headers().add("Content-Type", "text/event-stream;charset=UTF-8");
-        response.headers().add("Connection", "keep-alive");
-        response.headers().add("Cache-Control", "no-cache");
-        response.headers().add("Access-Control-Allow-Origin", "*");
-
         String stream = request.getParam("stream");
         if (stream == null) {
             context.fail(404);
         }
+
+        HttpServerResponse response = context.response();
+        addSseHeaders(response);
 
         MessageConsumer<Object> consumer = context.vertx().eventBus().consumer(stream, message -> {
             System.out.println("I have received a message on " + stream + ": " + message.body());
@@ -53,5 +48,13 @@ public class SubscribeHandler implements Handler<RoutingContext> {
             System.out.println("Stop Handler");
             consumer.unregister();
         });
+    }
+
+    private void addSseHeaders(HttpServerResponse response) {
+        response.setChunked(true);
+        response.headers().add("Content-Type", "text/event-stream;charset=UTF-8");
+        response.headers().add("Connection", "keep-alive");
+        response.headers().add("Cache-Control", "no-cache");
+        response.headers().add("Access-Control-Allow-Origin", "*");
     }
 }

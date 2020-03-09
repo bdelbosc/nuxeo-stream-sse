@@ -21,9 +21,9 @@ package org.nuxeo.micro.vertx.sse;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -40,55 +40,86 @@ import org.nuxeo.lib.stream.log.kafka.KafkaLogManager;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonArray;
 
 public class WorkVerticle extends AbstractVerticle implements RebalanceListener {
 
+    private LogManager logManager;
+
+    private LogTailer<Record> tailer;
+
+    private AvroDecoder decoder;
+
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
-        LogManager logManager = new KafkaLogManager("nuxeo-bulk-", getProducerProperties(), getConsumerProperties());
-        System.out.println("Got a LogMan: " + logManager);
-        Codec<Record> codec = new AvroMessageCodec<>(Record.class);
-        System.out.println("Got codec: " + codec);
-        // List<String> streams = (List<String>) config().getValue("streams");
-        List<String> streams = Collections.singletonList("command");
-        System.out.println("Streams: " + streams);
-        String group = config().getString("consumer.group");
-        System.out.println("Streams: " + streams + " group: " + group);
-        LogTailer<Record> tailer = logManager.subscribe(group, streams, this, codec);
-        System.out.println("Got a tailer: " + tailer);
-        tailer.toStart();
+        logManager = new KafkaLogManager(config().getString("stream.prefix"), getProducerProperties(),
+                getConsumerProperties());
+        initTailer();
         startPromise.complete();
+        System.err.println("Loop Start");
         try {
-            while (true) {
-                try {
-                    System.out.println("before read");
-                    LogRecord<Record> record = tailer.read(Duration.ofSeconds(5));
-                    if (record == null) {
-                        System.out.println("Starving");
-                        continue;
-                    }
-                    process(record);
-                } catch (RebalanceException e) {
-                    System.out.println("Rebalanced");
-                }
-            }
+            initAvro();
+            consumerLoop();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("Interrupted");
+            System.err.println("Loop Interrupted");
         } catch (Exception e) {
             // Exception in an executor are catched make sure they are logged
-            System.err.println("Loop error: " + e.getMessage());
+            System.err.println("Loop Error: " + e.getMessage());
             throw e;
         } finally {
+            System.out.println("Cleaning");
             tailer.close();
+            logManager.close();
+        }
+
+    }
+
+    private void initAvro() {
+        decoder = new AvroDecoder();
+        decoder.addResourceSchema("/avro/BulkBucket-0xCC59A5FF2725F7AF.avsc");
+        decoder.addResourceSchema("/avro/DataBucket-0xB62494C74E419198.avsc");
+        decoder.addResourceSchema("/avro/BulkStatus-0x182AC639648607C7.avsc");
+        decoder.addResourceSchema("/avro/BulkCommand-0xEEF6E0C0FA358880.avsc");
+    }
+
+    private void initTailer() {
+        System.out.println("Created: " + logManager);
+        Codec<Record> codec = new AvroMessageCodec<>(Record.class);
+        List<String> streams = getStreams();
+        String group = config().getString("consumer.group");
+        System.out.println("Streams: " + streams + " group: " + group);
+        tailer = logManager.subscribe(group, streams, this, codec);
+        System.out.println("Created: " + tailer);
+    }
+
+    private List<String> getStreams() {
+        JsonArray jsonStreams = (JsonArray) config().getValue("streams");
+        return jsonStreams.stream().map(v -> (String) v).collect(Collectors.toList());
+    }
+
+    private void consumerLoop() throws InterruptedException {
+        while (true) {
+            try {
+                LogRecord<Record> record = tailer.read(Duration.ofSeconds(5));
+                if (record == null) {
+                    System.out.println("Starving");
+                    continue;
+                }
+                processRecord(record);
+            } catch (RebalanceException e) {
+                System.out.println("Rebalanced");
+            }
         }
     }
 
-    private void process(LogRecord<Record> record) {
+    private void processRecord(LogRecord<Record> record) {
         String channel = record.offset().partition().name();
         System.out.println("Got record on channel:" + channel);
-        vertx.eventBus().publish(channel, record.message().toString());
+        String message = decoder.renderAvroMessage(record.message());
+        vertx.eventBus().publish(channel, message);
     }
+
 
     private Properties getConsumerProperties() {
         Properties props = new Properties();
@@ -119,5 +150,6 @@ public class WorkVerticle extends AbstractVerticle implements RebalanceListener 
     @Override
     public void onPartitionsAssigned(Collection<LogPartition> partitions) {
         System.out.println("Assigned " + Arrays.toString(partitions.toArray()));
+        tailer.toEnd();
     }
 }
