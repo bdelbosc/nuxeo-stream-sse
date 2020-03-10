@@ -5,43 +5,65 @@ This is a proof of concept **NOT FOR PRODUCTION**.
 
 ## About
 
-Nuxeo Stream is a server side stream processor that relies on Apache Kafka.
-Client can submits asynchronous processing command and request the state using a REST API,
-but it will be better to get continuous and realtime feedback instead
-of having to periodically pull the state.
+Nuxeo Stream and the [Bulk Service](https://doc.nuxeo.com/nxdoc/bulk-action-framework/#execution-flow) is a Stream processor framework that relies on Apache Kafka where a command can be submitted by a REST endpoint,
+the progression or status of each command can also be requested using another REST endpoint.
+
+Using periodic polling to get the status will saturate the limited tomcat pool and impacts all other operations on the platform, 
+
+To support a massive number of clients or deliver a large number of status we need to scale on the REST endpoint.
+
+We want a dedicated endpoint to send server feedback directly taken from Kafka in real-time without impacting the Nuxeo nodes' performance.
 
 ## Goals
 
-1. Propagates Nuxeo Stream records to the client side.
+1. Clients can subscribe to multiple Nuxeo Streams and receive record in real-time
 2. Support a massive number of clients per front node and scale horizontally.
 
 
 ## Design Decisions
 
-We need a one way communication from server to client.
-Server Sent Event is supported by all browsers and is exactly designed for this.
+We need one-way communication from server to the client.
+[Server Sent Event](https://en.wikipedia.org/wiki/Server-sent_events) is supported by all browsers and is exactly designed for this.
 
+Scaling on the number of clients means supporting lots of concurrencies using a small number of threads.
+An event-driven and non-blocking architecture like [Vert.x](https://vertx.io/) is a solid solution that can support thousands of connections per node with very few resources.
 
-To scale on the number of client it requires async NIO and a multi reactor pattern in order to handle a high number of concurrent requests.
-Vert.x is a solid solution that should support thousands of connections per node with very few resources.
+### Rejected Alternatives 
 
-
-### Rejected alternatives 
-
-- Use helidon and rxJava with an observer pattern:
-    - pros: we could run Nuxeo Runtime/Core as micro service on the same instance  
-    - cons: much more complex than vert.x event-bus
+- Use [Helidon](https://helidon.io/) and [rxJava](https://github.com/ReactiveX/RxJava) with an observer pattern:
+    - pros: we could run limited Nuxeo Platform as micro-service on the same instance
+    - cons: much more complex and heavier than vert.x event-bus
 
 - Use Akka:
     - pros:
-    - cons: actors is a complex pattern just for this specific need
+    - cons: actor pattern is too complex just for this specific need
+
+## Implementation
+
+There is a single thread that reads records using the Nuxeo Stream Lib on multiple Streams (Kafka Topics).
+This is a [Vert.x Worker Verticle](https://vertx.io/docs/vertx-core/java/#worker_verticles).
+ 
+The records are decoded from Avro and send as JSON in the internal Vert.x [pub-sub event bus](https://vertx.io/docs/vertx-core/java/#_the_event_bus_api).
+
+The client uses a REST endpoint to subscribe to a list of streams, the connection is managed by request handler.
+Each handler subscribes to the Vert.x event bus and propagate the record downstream using SSE.
+Having thousands of handlers should easy peasy.
 
 ## Usage
 
-Clients subscribe to streams using a REST API and receive records from the stream in real time:
+Start a Nuxeo with Kafka enabled, then run the poc:
+```bash
+# build
+mvn -nsu clean install
+# run
+java -jar target/nuxeo-stream-sse-1.0.0-SNAPSHOT-fat.jar
+...
+```
+
+Use curl to simulate a client subscription. For instance, subscribe to different streams of the Bulk Service,
+note that `timer` stream is a fake stream used to create a heart-beat: 
 
 ```bash
-# subscribe to multiple streams from the Bulk Service, timer is a special stream to get a heart beat
 curl -XGET http://localhost:8888/subscribe/command+status+done+timer
 stream: timer
 message: {"now": "2020-03-09T15:37:36.809280Z"}
@@ -70,15 +92,14 @@ message: {"now": "2020-03-09T15:37:46.807009Z"}
 ...
 ```
 
-There is a single Worker thread that read records using the Nuxeo Stream Lib,
-records are forwarded to the internal pub-sub Vert.X event bus.
-
-Client subscription is done by Handlers (could be thousands) receive records from the event bus
-and propagates downstream using SSE. 
-
 
 ## TODO
 
+- add metadata to message: offset, stream, event-time, flag
+  ```
+    metadata: {"stream": name, "offset": "1234" ...}
+    message: { ... }
+  ```
 - create a "lag" stream that reports lag and latency on Nuxeo Stream consumers
 - configure and use log4j
 - create a simple client application to introspect Nuxeo Stream activity
