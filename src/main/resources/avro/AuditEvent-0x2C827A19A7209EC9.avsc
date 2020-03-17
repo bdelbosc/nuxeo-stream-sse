@@ -1,0 +1,55 @@
+{
+  "type" : "record",
+  "name" : "AuditEvent",
+  "namespace" : "org.nuxeo.ecm.platform.audit.stream",
+  "fields" : [ {
+    "name" : "source",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "name",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "category",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "docId",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "repository",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "principalName",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "docLifeCycle",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "docPath",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "comment",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "docType",
+    "type" : [ "null", "string" ],
+    "default" : null
+  }, {
+    "name" : "eventDate",
+    "type" : "long"
+  }, {
+    "name" : "logDate",
+    "type" : "long"
+  }, {
+    "name" : "eventId",
+    "type" : "long"
+  } ]
+}

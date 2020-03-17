@@ -61,12 +61,12 @@ public class MainVerticle extends AbstractVerticle {
     private JsonObject getDefaultConfig() {
         return new JsonObject().put("bootstrap.servers", "localhost:9092")
                                .put("consumer.group", "" + "vertx")
-                               .put("stream.prefix", "nuxeo-bulk-")
+                               .put("stream.prefix", "nuxeo-")
                                .put("streams", getDefaultStreams());
     }
 
     private List<String> getDefaultStreams() {
-        return new ArrayList<>(List.of("command", "status", "done"));
+        return new ArrayList<>(List.of("src-audit", "bulk-command", "bulk-status", "bulk-done"));
     }
 
     private void createWebServer(Promise<Void> startPromise, Router router) {

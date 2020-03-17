@@ -64,23 +64,23 @@ Use curl to simulate a client subscription. For instance, subscribe to different
 note that `timer` stream is a fake stream used to create a heart-beat: 
 
 ```bash
-curl -XGET http://localhost:8888/subscribe/command+status+done+timer
+curl -XGET http://localhost:8888/subscribe/bulk-command+bulk-status+bulk-done+timer
 stream: timer
 message: {"now": "2020-03-09T15:37:36.809280Z"}
 
-stream: command
+stream: bulk-command
 message: {"id": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": "csvExport", "query": "SELECT * FROM Document WHERE ecm:parentId = 'b9ac4cbc-2be0-47e4-9d5f-bd515e6d3050' AND ecm:isTrashed = 0 AND (ecm:isVersion = 0 AND ecm:mixinType != 'HiddenInNavigation')", "username": "Administrator", "repository": "default", "bucketSize": 100, "batchSize": 50, "scroller": "elastic", "params": "{\"schemas\":[\"dublincore\",\"common\",\"uid\",\"file\"]}"}
 
-stream: status
+stream: bulk-status
 message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": null, "state": "SCROLLING_RUNNING", "submitTime": null, "scrollStartTime": 1583768260567, "scrollEndTime": null, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": null, "processingDurationMillis": null, "result": null}
 
-stream: status
+stream: bulk-status
 message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": null, "state": "RUNNING", "submitTime": null, "scrollStartTime": null, "scrollEndTime": 1583768260634, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": 999, "processingDurationMillis": null, "result": null}
 
-stream: done
+stream: bulk-done
 message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": "csvExport", "username": "Administrator", "delta": false, "errorCount": 0, "errorMessage": null, "processed": 999, "state": "COMPLETED", "submitTime": 1583768260546, "scrollStartTime": 1583768260567, "scrollEndTime": 1583768260634, "processingStartTime": null, "processingEndTime": null, "completedTime": 1583768261517, "total": 999, "processingDurationMillis": null, "result": "{\"url\":\"nxbigblob/e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d\"}"}
 
-stream: status
+stream: bulk-status
 message: {"commandId": "e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d", "action": null, "username": null, "delta": true, "errorCount": 0, "errorMessage": null, "processed": 999, "state": null, "submitTime": null, "scrollStartTime": null, "scrollEndTime": null, "processingStartTime": null, "processingEndTime": null, "completedTime": null, "total": null, "processingDurationMillis": null, "result": "{\"url\":\"nxbigblob/e8bfb0a4-8c57-4835-9e6a-13cc2b5c075d\"}"}
 
 stream: timer

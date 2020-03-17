@@ -83,6 +83,7 @@ public class WorkVerticle extends AbstractVerticle implements RebalanceListener 
         decoder.addResourceSchema("/avro/DataBucket-0xB62494C74E419198.avsc");
         decoder.addResourceSchema("/avro/BulkStatus-0x182AC639648607C7.avsc");
         decoder.addResourceSchema("/avro/BulkCommand-0xEEF6E0C0FA358880.avsc");
+        decoder.addResourceSchema("/avro/AuditEvent-0x2C827A19A7209EC9.avsc");
     }
 
     private void initTailer() {
